@@ -5,7 +5,7 @@ app = Flask(__name__)
 @app.route('/')
 def index():
     #"Hello, World!"
-    return render_template (index.html, title='Inicio')
+    return render_template ('index.html', title='Inicio')
 
 
 @app.route('/usuarios/<nombre>')
@@ -17,8 +17,8 @@ def about():
     return render_template('about.html', title='Acerca de')
 
 @app.route('/contacto')
-def contact():
-    return "contacto con nommbres"
+def contacto():
+    return "contacto con nosotros en"
 
 if __name__ == '__main__':
     app.run(debug=True)

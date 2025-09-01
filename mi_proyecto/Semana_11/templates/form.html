@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block title %}{{ titulo }}{% endblock %}
+{% block content %}
+<h1>{{ titulo }}</h1>
+
+<form method="POST">
+    {{ form.hidden_tag() }}
+    <div class="field">
+        {{ form.nombre.label }}<br>
+        {{ form.nombre(size=40) }}
+        {% for e in form.nombre.errors %}
+        <div class="error">{{ e }}</div>
+        {% endfor %}
+    </div>
+
+    <div class="field">
+        {{ form.cantidad.label }}<br>
+        {{ form.cantidad(min=0) }}
+        {% for e in form.cantidad.errors %}
+        <div class="error">{{ e }}</div>
+        {% endfor %}
+    </div>
+
+    <div class="field">
+        {{ form.precio.label }}<br>
+        {{ form.precio(min=0, step="0.01") }}
+        {% for e in form.precio.errors %}
+        <div class="error">{{ e }}</div>
+        {% endfor %}
+    </div>
+
+    <div class="field row">
+        <button class="btn primary" type="submit">{{ form.submit.label.text }}</button>
+        <a class="btn ghost" href="{{ url_for('index') }}">Cancelar</a>
+    </div>
+</form>
+{% endblock %}

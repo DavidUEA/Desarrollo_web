@@ -1,0 +1,40 @@
+{% extends 'base.html' %}
+
+{% block content %}
+    <h2>Guardar datos</h2>
+    
+    <h3>Guardar en TXT</h3>
+    <form method="post" action="{{ url_for('guardar_txt') }}">
+        <label for="dato_txt">Dato de texto:</label>
+        <input type="text" id="dato_txt" name="dato_txt" required>
+        <button type="submit">Guardar</button>
+    </form>
+    
+    <h3>Guardar en JSON</h3>
+    <form method="post" action="{{ url_for('guardar_json') }}">
+        <label for="nombre_json">Nombre:</label>
+        <input type="text" id="nombre_json" name="nombre_json" required>
+        <label for="valor_json">Valor:</label>
+        <input type="text" id="valor_json" name="valor_json" required>
+        <button type="submit">Guardar</button>
+    </form>
+    
+    <h3>Guardar en CSV</h3>
+    <form method="post" action="{{ url_for('guardar_csv') }}">
+        <label for="nombre_csv">Nombre:</label>
+        <input type="text" id="nombre_csv" name="nombre_csv" required>
+        <label for="precio_csv">Precio:</label>
+        <input type="number" id="precio_csv" name="precio_csv" step="0.01" required>
+        <button type="submit">Guardar</button>
+    </form>
+
+    <h3>Guardar en Base de Datos (SQLite)</h3>
+    <form method="post" action="{{ url_for('guardar_db') }}">
+        <label for="nombre_db">Nombre:</label>
+        <input type="text" id="nombre_db" name="nombre_db" required>
+        <label for="email_db">Email:</label>
+        <input type="email" id="email_db" name="email_db" required>
+        <button type="submit">Guardar</button>
+    </form>
+
+{% endblock %}

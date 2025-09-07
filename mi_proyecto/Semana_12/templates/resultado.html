@@ -1,0 +1,23 @@
+{% extends 'base.html' %}
+
+{% block content %}
+    <h2>{{ titulo }}</h2>
+    <div class="result-container">
+        {% if datos %}
+            {% for dato in datos %}
+                <div class="result-item">
+                    {% if titulo == 'Datos TXT' %}
+                        <p>{{ dato }}</p>
+                    {% elif titulo == 'Datos JSON' or titulo == 'Datos CSV' %}
+                        <p>Nombre: {{ dato.nombre }}</p>
+                        <p>Valor/Precio: {{ dato.valor if 'valor' in dato else dato.precio }}</p>
+                    {% elif titulo == 'Usuarios de la Base de Datos' %}
+                        <p>ID: {{ dato.id }} - Nombre: {{ dato.nombre }} - Email: {{ dato.email }}</p>
+                    {% endif %}
+                </div>
+            {% endfor %}
+        {% else %}
+            <p>No hay datos para mostrar.</p>
+        {% endif %}
+    </div>
+{% endblock %}

@@ -1,0 +1,33 @@
+
+
+from flask import Flask
+import mysql.connector
+
+app = Flask(__name__)
+
+# Función para conectar a MySQL
+def obtener_conexion():
+    return mysql.connector.connect(
+        host='localhost',
+        user='root',
+        password='tu_contraseña',  # <-- Reemplaza con tu contraseña real de MySQL
+        database='desarrollo_web'
+    )
+
+# Ruta de prueba
+@app.route('/')
+def home():
+    return "¡Bienvenido a mi proyecto Flask con MySQL!"
+
+# Ruta para probar conexión a MySQL
+@app.route('/test_db')
+def test_db():
+    try:
+        conexion = obtener_conexion()
+        if conexion.is_connected():
+            return "✅ Conexión exitosa a MySQL"
+    except Exception as e:
+        return f"❌ Error al conectar a MySQL: {str(e)}"
+
+if __name__ == '__main__':
+    app.run(debug=True)

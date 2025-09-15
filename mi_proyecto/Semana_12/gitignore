@@ -17,7 +17,7 @@ def obtener_conexion():
 # Ruta de prueba
 @app.route('/')
 def home():
-    return "¡Bienvenido a mi proyecto Flask con MySQL!"
+    return "¡Bienvenido a mi proyecto Flask con David"
 
 # Ruta para probar conexión a MySQL
 @app.route('/test_db')
@@ -25,9 +25,9 @@ def test_db():
     try:
         conexion = obtener_conexion()
         if conexion.is_connected():
-            return "✅ Conexión exitosa a MySQL"
+            return "✅ Conexión exitosa a David"
     except Exception as e:
-        return f"❌ Error al conectar a MySQL: {str(e)}"
+        return f"❌ Error al conectar a David: {str(e)}"
 
 if __name__ == '__main__':
     app.run(debug=True)

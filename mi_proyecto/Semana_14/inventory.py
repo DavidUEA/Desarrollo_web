@@ -1,3 +1,4 @@
+from extension import db
 from models import db, Producto
 
 class Inventario:

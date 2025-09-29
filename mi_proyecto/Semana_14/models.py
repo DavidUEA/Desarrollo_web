@@ -1,6 +1,7 @@
-from flask_sqlalchemy import SQLAlchemy
+
 from extension import db 
-db = SQLAlchemy()
+from flask_login import UserMixin
+
 
 class Producto(db.Model):
     __tablename__ = 'productos'
@@ -14,3 +15,14 @@ class Producto(db.Model):
 
     def to_tuple(self):
         return (self.id, self.nombre, self.cantidad, self.precio)
+
+class Usuario(db.Model, UserMixin):
+    __tablename__ = 'usuarios'
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(80), unique=True, nullable=False)
+    password_hash = db.Column(db.String(255), nullable=False)
+    pass
+    # En una app real, aquí iría un campo 'password_hash'
+    
+    def __repr__(self):
+        return f'<Usuario {self.username}>'

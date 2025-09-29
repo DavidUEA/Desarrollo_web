@@ -1,0 +1,55 @@
+{% extends 'base.html' %} 
+{% block content %}
+<div class="container mt-4">
+    <h1>Inventario de Productos</h1>
+
+    <p>
+        <a href="{{ url_for('crear_producto') }}" class="btn btn-primary">
+            + Agregar Nuevo Producto
+        </a>
+    </p>
+
+    <form method="GET" action="{{ url_for('listar_productos') }}" class="mb-4">
+        <div class="input-group">
+            <input type="text" name="q" class="form-control" placeholder="Buscar por nombre..." value="{{ q or '' }}">
+            <button class="btn btn-outline-secondary" type="submit">Buscar</button>
+        </div>
+    </form>
+
+    {% if productos %}
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Nombre</th>
+                <th>Cantidad</th>
+                <th>Precio</th>
+                <th>Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for producto in productos %}
+            <tr>
+                <td>{{ producto.id }}</td>
+                <td>{{ producto.nombre }}</td>
+                <td>{{ producto.cantidad }}</td>
+                <td>${{ producto.precio | round(2) }}</td>
+                <td>
+                    <a href="{{ url_for('editar_producto', pid=producto.id) }}" class="btn btn-sm btn-warning">Editar</a>
+                    
+                    <form method="POST" action="{{ url_for('eliminar_producto', pid=producto.id) }}" style="display:inline;">
+                        <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('¿Estás seguro de eliminar {{ producto.nombre }}?');">Eliminar</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <div class="alert alert-info">
+        No se encontraron productos en el inventario.
+        <a href="{{ url_for('crear_producto') }}">Agrega el primero aquí.</a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

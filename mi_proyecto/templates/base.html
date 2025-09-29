@@ -1,28 +1,48 @@
 <!doctype html>
 <html lang="es">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>{% block title %}{{ title or "Mi sitio Flask" }}{% endblock %}</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
-  {% block extra_css %}{% endblock %}
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{% block title %}{{ title or "Mi sitio Flask" }}{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    {% block extra_css %}{% endblock %}
 </head>
 <body>
-  <header class="site-header">
-    <nav class="nav">
-      <a href="{{ url_for('index') }}">Inicio</a>
-      <a href="{{ url_for('about') }}">Acerca de</a>
-    </nav>
-  </header>
+    <header class="site-header">
+        <nav class="nav">
+            <a href="{{ url_for('index') }}">Inicio</a>
+            <a href="{{ url_for('about') }}">Acerca de</a>
+            <a href="{{ url_for('listar_productos') }}">Inventario</a>
+        </nav>
 
-  <main class="container">
-    {% block content %}{% endblock %}
-  </main>
+        <nav class="auth-nav">
+            {% if current_user.is_authenticated %}
+                <span>Bienvenido, {{ current_user.username }}</span>
+                <a href="{{ url_for('logout') }}">Cerrar Sesión</a>
+            {% else %}
+                <a href="{{ url_for('login') }}">Iniciar Sesión</a>
+            {% endif %}
+        </nav>
+    </header>
 
-  <footer class="site-footer">
-    <small>© {{ 2025 }} Derechos de autor</small>
-  </footer>
+    <main class="container">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="flashes">
+                {% for category, message in messages %}
+                    <div class="flash-message flash-{{ category }}">{{ message }}</div>
+                {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
 
-  {% block extra_js %}{% endblock %}
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer class="site-footer">
+        <small>© {{ now().year if 'now' in globals() else 2025 }} Derechos de autor</small>
+    </footer>
+
+    {% block extra_js %}{% endblock %}
 </body>
 </html>

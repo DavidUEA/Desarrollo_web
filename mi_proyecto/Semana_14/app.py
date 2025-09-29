@@ -28,8 +28,7 @@ login_manager.login_message = "Debes iniciar sesión para acceder a esta página
 @login_manager.user_loader
 def load_user(user_id):
     from models import Usuario
-    # Flask-Login espera que devuelvas un objeto Usuario o None.
-    return Usuario.query.get(int(user_id))
+    return db.session.get(Usuario, int(user_id))
 
 inventario = None
 
@@ -139,8 +138,7 @@ def crear_producto():
 
 @app.route('/productos/<int:pid>/editar', methods=['GET', 'POST'])
 def editar_producto(pid):
-    # Nota: Usamos Producto.query.get_or_404(pid) para obtener la instancia más reciente,
-    # aunque inventario.actualizar también la busca si no está en la caché.
+    
     prod = Producto.query.get_or_404(pid) 
     form = ProductoForm(obj=prod)
     if form.validate_on_submit():

@@ -1,57 +1,59 @@
 <!doctype html>
 <html lang="es">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>{% block title %}{{ title if title is defined else "Mi sitio Flask" }}{% endblock %}</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
-  {% block extra_css %}{% endblock %}
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{% block title %}{{ title if title is defined else "Mi sitio Flask" }}{% endblock %}</title>
+  
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+  {% block extra_css %}{% endblock %}
 </head>
 <body>
-  <header class="site-header">
-    <nav class="nav">
-      <a href="{{ url_for('index') }}">Inicio</a>
-      <a href="{{ url_for('about') }}">Acerca de</a>
+  <header class="site-header">
+    <nav class="nav">
+      <div class="nav-group-left">
+          <a href="{{ url_for('index') }}" style="font-size: 1.2rem;">Mi Proyecto</a>
+          <a href="{{ url_for('about') }}">Acerca de</a>
+      </div>
 
-      {% if current_user.is_authenticated %}
-        <a href="{{ url_for('listar_productos') }}">Productos</a>
-        {# Cuando tengas rutas reales, agrega:
-           <a href="{{ url_for('listar_inventario') }}">Inventario</a>
-           <a href="{{ url_for('listar_clientes') }}">Clientes</a>
-        #}
+      <div class="nav-group-right">
+        {% if current_user.is_authenticated %}
+          <span>Hola, {{ current_user.username }}</span>
+          <a href="{{ url_for('listar_productos') }}">Productos</a>
 
-        <span class="nav-user">Hola, {{ current_user.nombre or current_user.email }}</span>
-        <form method="POST" action="{{ url_for('logout') }}">
-          {{ formulario_de_cierre_de_sesion.csrf_token }}
+          <span class="nav-user">Bienvenidos</span>
+          
+          <form method="POST" action="{{ url_for('logout') }}" style="display: inline;">
+            {{ formulario_de_cierre_de_sesion.csrf_token }}
 
-    <button type="submit">cerrar Sesión</button>
-  <button type="submit" class="btn-link">Salir</button>
-</form>
-      {% else %}
-        <a href="{{ url_for('login') }}">Ingresar</a>
-        <a href="{{ url_for('registro') }}">Registrarse</a>
-      {% endif %}
-    </nav>
-  </header>
+            <button type="submit" class="btn-link">Cerrar Sesión</button>
+          </form>
+        {% else %}
+          <a href="{{ url_for('login') }}">Ingresar</a>
+          <a href="{{ url_for('registro') }}">Registrarse</a>
+        {% endif %}
+      </div>
+    </nav>
+  </header>
 
-  {% with msgs = get_flashed_messages(with_categories=true) %}
-    {% if msgs %}
-      <div class="flash-container">
-        {% for cat, msg in msgs %}
-          <div class="flash {{ cat }}">{{ msg }}</div>
-        {% endfor %}
-      </div>
-    {% endif %}
-  {% endwith %}
+  {% with msgs = get_flashed_messages(with_categories=true) %}
+    {% if msgs %}
+      <div class="flash-container">
+        {% for cat, msg in msgs %}
+          <div class="flash {{ cat }}">{{ msg }}</div>
+        {% endfor %}
+      </div>
+    {% endif %}
+  {% endwith %}
 
-  <main class="container">
-    {% block content %}{% endblock %}
-  </main>
+  <main class="container">
+    {% block content %}{% endblock %}
+  </main>
 
-  <footer class="site-footer">
-    <small>© {{ now().year if now is defined else 2025 }} Derechos de autor</small>
-  </footer>
+  <footer class="site-footer">
+    <small>© {{ now().year if now is defined else 2025 }} Derechos de autor</small>
+  </footer>
 
-  {% block extra_js %}{% endblock %}
+  {% block extra_js %}{% endblock %}
 </body>
 </html>

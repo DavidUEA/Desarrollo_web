@@ -1,37 +1,159 @@
-:root { --bg:#0f172a; --fg:#e2e8f0; --muted:#94a3b8; --brand:#2563eb; --ok:#16a34a; --warn:#f59e0b; --danger:#dc2626; --card:#111827; }
+:root {
+    /* Paleta de colores más moderna */
+    --primary-color: #3b82f6; /* Azul vibrante para acento y botones */
+    --secondary-color: #10b981; /* Verde sutil para éxito/mensajes */
+    --background-light: #f9fafb; /* Fondo principal muy claro */
+    --background-dark: #ffffff; /* Fondo para elementos (cards, nav) */
+    --text-primary: #1f2937; /* Texto principal oscuro */
+    --text-secondary: #6b7280; /* Texto secundario/pie de página */
+    --border-color: #e5e7eb; /* Borde muy sutil */
+    
+    /* Espaciado y Sombra */
+    --spacing-unit: 1rem;
+    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+}
 
-* { box-sizing: border-box; }
-body { margin:0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; background:#0b1020; color:var(--fg); }
+/* Base y Reset */
+* {
+    box-sizing: border-box;
+}
+body {
+    margin: 0;
+    font-family: 'Inter', system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; /* Fuente moderna */
+    color: var(--text-primary);
+    background-color: var(--background-light); /* Fondo suave */
+    line-height: 1.6; /* Mejor legibilidad */
+}
 
-.site-header { background:var(--bg); border-bottom:1px solid #223; position:sticky; top:0; z-index:10; }
-.nav { display:flex; gap:1rem; align-items:center; padding:0.9rem 1.2rem; }
-.nav a { color:var(--fg); text-decoration:none; opacity:.9; }
-.nav a:hover { opacity:1; text-decoration:underline; }
+/* --- Header y Navegación --- */
+.site-header {
+    background: var(--background-dark);
+    border-bottom: 1px solid var(--border-color);
+    box-shadow: var(--shadow-sm); /* Sombra ligera para elevación */
+    position: sticky; /* Fija la barra de navegación en la parte superior */
+    top: 0;
+    z-index: 100;
+}
+.nav {
+    display: flex;
+    justify-content: space-between; /* Espacio entre el logo/título y los enlaces de acción */
+    align-items: center;
+    gap: 1.5rem;
+    padding: var(--spacing-unit) 1.5rem;
+    max-width: 1200px; /* Ampliado para mejor uso del espacio */
+    margin: 0 auto;
+}
+.nav-links, .nav-auth {
+    display: flex;
+    gap: 1rem;
+}
+.nav a {
+    text-decoration: none;
+    color: var(--primary-color);
+    font-weight: 500;
+    padding: 0.5rem 0;
+    transition: color 0.2s;
+}
+.nav a:hover {
+    color: var(--text-primary); /* Cambia a texto oscuro al pasar el ratón */
+}
 
-.container { max-width:900px; margin:2rem auto; padding:0 1rem; }
+/* --- Estructura Principal y Tarjetas (Cards) --- */
+.container {
+    max-width: 1200px;
+    margin: 2.5rem auto;
+    padding: 0 1.5rem;
+}
+h1, h2 {
+    color: var(--text-primary);
+    font-weight: 700;
+    margin-bottom: var(--spacing-unit);
+}
+h1 {
+    font-size: 2.5rem;
+    border-bottom: 2px solid var(--border-color); /* Separador sutil */
+    padding-bottom: 0.5rem;
+}
 
-.table { width:100%; border-collapse: collapse; margin-top:1rem; background:var(--card); border:1px solid #223; }
-.table th, .table td { padding:.75rem; border-bottom:1px solid #223; text-align:left; }
-.table th { color:#cbd5e1; font-weight:600; background:#0e152b; }
+/* Estilo para Tarjetas o Secciones (Auth/Producto) */
+.card {
+    background-color: var(--background-dark);
+    padding: 2rem;
+    border-radius: 8px;
+    box-shadow: var(--shadow-md); /* Sombra más pronunciada para resaltar */
+    margin-bottom: 2rem;
+}
 
-.form-inline { display:flex; gap:.5rem; flex-wrap:wrap; margin:.5rem 0 1rem; }
-.input, input[type="text"], input[type="number"] { width:100%; padding:.6rem .7rem; background:#0e152b; color:var(--fg); border:1px solid #223; border-radius:.5rem; }
-.form-card { max-width:520px; background:var(--card); padding:1rem; border:1px solid #223; border-radius:.8rem; }
-.form-group { margin-bottom:.9rem; }
-.error { color:#fca5a5; display:block; margin-top:.25rem; }
+/* --- Formularios (Mejora la legibilidad) --- */
+.form-row {
+    margin-bottom: 1.5rem;
+}
+label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+}
+input[type="text"], input[type="email"], input[type="password"], select, textarea, .form-control {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    font-size: 1rem;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+input:focus, select:focus, textarea:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+    outline: none;
+}
+.text-danger {
+    color: #ef4444; /* Rojo para errores */
+    font-size: 0.875rem;
+    display: block;
+    margin-top: 0.25rem;
+}
 
-.btn { display:inline-block; padding:.5rem .8rem; border-radius:.5rem; border:1px solid #223; background:#0e152b; color:var(--fg); text-decoration:none; cursor:pointer; }
-.btn:hover { filter:brightness(1.1); }
-.btn-primary { background:var(--brand); border-color:transparent; }
-.btn-secondary { background:#334155; }
-.btn-danger { background:var(--danger); border-color:transparent; }
-.btn-small { padding:.35rem .55rem; font-size:.9rem; }
+/* --- Botones --- */
+.btn {
+    display: inline-block;
+    padding: 0.75rem 1.5rem;
+    font-size: 1rem;
+    font-weight: 600;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    text-align: center;
+    transition: background-color 0.2s, transform 0.1s;
+}
+.btn-primary {
+    background-color: var(--primary-color);
+    color: var(--background-dark);
+}
+.btn-primary:hover {
+    background-color: #2563eb; /* Un tono más oscuro de azul */
+    transform: translateY(-1px);
+}
+/* Estilo para el botón de Cerrar Sesión (ejemplo) */
+.btn-link {
+    background: none;
+    color: var(--text-secondary);
+    padding: 0;
+    font-weight: 500;
+}
+.btn-link:hover {
+    color: var(--primary-color);
+    text-decoration: underline;
+}
 
-.flash-container { margin:1rem 0; display:grid; gap:.5rem; }
-.flash { padding:.6rem .8rem; border-radius:.5rem; border:1px solid #223; background:#0e152b; }
-.flash.success { border-color:#14532d; background:#052e18; }
-.flash.info { border-color:#0e2a52; background:#06162b; }
-.flash.warning { border-color:#513c0b; background:#2b1c06; }
 
-.site-footer { text-align:center; padding:1.2rem; border-top:1px solid #223; color:var(--muted); }
-.acciones { white-space:nowrap; }
+/* --- Footer --- */
+.site-footer {
+    border-top: 1px solid var(--border-color);
+    padding: var(--spacing-unit);
+    text-align: center;
+    color: var(--text-secondary);
+    font-size: 0.875rem;
+    margin-top: 3rem;
+}

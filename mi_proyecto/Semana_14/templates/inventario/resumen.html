@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>Inventario General</h2>
+    <hr>
+    
+    <div class="row">
+        <div class="col-md-6 mb-4">
+            <div class="card text-white bg-info shadow">
+                <div class="card-body">
+                    <h5 class="card-title">Productos Únicos en Stock</h5>
+                    <h1 class="card-text">{{ total_productos }}</h1>
+                    <p class="card-text">Clases diferentes de artículos registrados.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6 mb-4">
+            <div class="card text-white bg-success shadow">
+                <div class="card-body">
+                    <h5 class="card-title">Valor Total Estimado</h5>
+                    <h1 class="card-text">${{ valor_total | float | round(2) }}</h1>
+                    <p class="card-text">Costo total de la mercancía actual.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="mt-4">
+        <div class="row">
+        </div>
+    
+    <div class="mt-5">
+        <h3>Vista Rápida: Productos con Bajo Stock (Menos de 10)</h3>
+
+        {% if productos_bajo_stock %}
+        <div class="card shadow p-3 bg-dark-subtle">
+            <table class="table table-dark table-striped table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Nombre</th>
+                        <th class="text-end">Cantidad</th>
+                        <th class="text-center">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for producto in productos_bajo_stock %}
+                    <tr class="table-danger"> <td>{{ producto.id }}</td>
+                        <td>{{ producto.nombre }}</td>
+                        <td class="text-end">{{ producto.cantidad }}</td>
+                        <td class="text-center">
+                             <a href="{{ url_for('editar_producto', pid=producto.id) }}" class="btn btn-sm btn-light">Reabastecer</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="alert alert-success mt-3" role="alert">
+            ¡Excelente! Todos los productos tienen un stock saludable (cantidad ≥ 10).
+        </div>
+        {% endif %}
+    </div>
+
+</div>
+{% endblock %}

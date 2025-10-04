@@ -1,56 +1,68 @@
 {% extends 'base.html' %} 
-{% block content %}
-<div class="card">
-    <div class="container mt-4">
-        <h1>Inventario de Productos</h1>
 
-    <p>
+{% block content %}
+<div class="container mt-4"> 
+    <h1>Inventario de Productos</h1>
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
         <a href="{{ url_for('crear_producto') }}" class="btn btn-primary">
             + Agregar Nuevo Producto
         </a>
-    </p>
-
-    <form method="GET" action="{{ url_for('listar_productos') }}" class="mb-4">
-        <div class="input-group">
-            <input type="text" name="q" class="form-control" placeholder="Buscar por nombre..." value="{{ q or '' }}">
-            <button class="btn btn-outline-secondary" type="submit">Buscar</button>
-        </div>
-    </form>
+        
+        <form method="GET" action="{{ url_for('listar_productos') }}" class="w-50 ms-3">
+            <div class="input-group">
+                <input type="text" name="q" class="form-control" placeholder="Buscar por nombre..." value="{{ q or '' }}">
+                <button class="btn btn-outline-secondary" type="submit">Buscar</button>
+                {% if q %}
+                <a href="{{ url_for('listar_productos') }}" class="btn btn-outline-secondary">Limpiar</a>
+                {% endif %}
+            </div>
+        </form>
+    </div>
 
     {% if productos %}
-    <table class="data-table"> 
-        <thead>
-            <tr>
-                <th>ID</th>
-                <th>Nombre</th>
-                <th>Cantidad</th>
-                <th>Precio</th>
-                <th>Acciones</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for producto in productos %}
-            <tr>
-                <td>{{ producto.id }}</td>
-                <td>{{ producto.nombre }}</td>
-                <td>{{ producto.cantidad }}</td>
-                <td>${{ producto.precio | round(2) }}</td>
-                <td>
-                    <a href="{{ url_for('editar_producto', pid=producto.id) }}" class="btn btn-sm btn-warning">Editar</a>
-                    
-                    <form method="POST" action="{{ url_for('eliminar_producto', pid=producto.id) }}" style="display:inline;">
-                        <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('¿Estás seguro de eliminar {{ producto.nombre }}?');">Eliminar</button>
-                    </form>
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+    <div class="card shadow"> <div class="card-body p-0">
+            <table class="table table-striped table-hover mb-0"> <thead>
+                    <tr>
+                        <th class="text-center">ID</th>
+                        <th>Nombre</th>
+                        <th class="text-end">Cantidad</th>
+                        <th class="text-end">Precio</th>
+                        <th class="text-center">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for producto in productos %}
+                    <tr>
+                        <td class="text-center">{{ producto.id }}</td>
+                        <td>{{ producto.nombre }}</td>
+                        <td class="text-end">{{ producto.cantidad }}</td>
+                        <td class="text-end">${{ producto.precio | round(2) }}</td>
+                        <td class="text-center">
+                            <a href="{{ url_for('editar_producto', pid=producto.id) }}" class="btn btn-sm btn-warning">Editar</a>
+                            
+                            <form method="POST" action="{{ url_for('eliminar_producto', pid=producto.id) }}" style="display:inline;">
+                                <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('¿Estás seguro de eliminar {{ producto.nombre }}?');">Eliminar</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
     {% else %}
-    <div class="alert alert-info">
-        No se encontraron productos en el inventario.
-        <a href="{{ url_for('crear_producto') }}">Agrega el primero aquí.</a>
+    {% if q %}
+    <div class="alert alert-warning mt-3" role="alert">
+        No se encontraron resultados para la búsqueda **"{{ q }}"**.
+    </div>
+    {% else %}
+    <div class="alert alert-info mt-3" role="alert">
+        No se encontraron productos en el inventario. 
+        <a href="{{ url_for('crear_producto') }}" class="alert-link">Agrega el primero aquí.</a>
     </div>
     {% endif %}
+    {% endif %}
+
 </div>
 {% endblock %}

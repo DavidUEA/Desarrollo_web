@@ -1,0 +1,47 @@
+{% extends 'base.html' %} 
+
+{% block content %}
+<div class="container mt-4">
+    <div class="card p-4">
+        {% if modo == 'crear' %}
+        <h2>Crear Nuevo Cliente</h2>
+        {% else %}
+        <h2>Editar Cliente</h2>
+        {% endif %}
+        <hr>
+
+        <form method="POST">
+            {{ form.hidden_tag() }}
+            
+            <div class="mb-3">
+                {{ form.nombre.label(class="form-label") }}
+                {{ form.nombre(class="form-control", placeholder="Nombre del Cliente") }}
+                {% for error in form.nombre.errors %}
+                    <span class="text-danger">{{ error }}</span>
+                {% endfor %}
+            </div>
+
+            <div class="mb-3">
+                {{ form.direccion.label(class="form-label") }}
+                {{ form.direccion(class="form-control", placeholder="Dirección") }}
+            </div>
+
+            <div class="mb-3">
+                {{ form.telefono.label(class="form-label") }}
+                {{ form.telefono(class="form-control", placeholder="Teléfono") }}
+            </div>
+            
+            <div class="mb-3">
+                {{ form.email.label(class="form-label") }}
+                {{ form.email(class="form-control", placeholder="Correo Electrónico") }}
+                {% for error in form.email.errors %}
+                    <span class="text-danger">{{ error }}</span>
+                {% endfor %}
+            </div>
+
+            {{ form.submit(class="btn btn-primary") }}
+            <a href="{{ url_for('listar_clientes') }}" class="btn btn-secondary">Cancelar</a>
+        </form>
+    </div>
+</div>
+{% endblock %}

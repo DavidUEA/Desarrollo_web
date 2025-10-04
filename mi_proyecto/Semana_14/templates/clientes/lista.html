@@ -1,0 +1,56 @@
+{% extends 'base.html' %} 
+
+{% block content %}
+<div class="container mt-4">
+    <h1>Gestión de Clientes</h1>
+
+    <p>
+        <a href="{{ url_for('crear_cliente') }}" class="btn btn-primary">
+            + Agregar Nuevo Cliente
+        </a>
+    </p>
+
+    {% if clientes %}
+    <div class="card shadow">
+        <div class="card-body p-0">
+            <table class="table table-striped table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th class="text-center">ID</th>
+                        <th>Nombre</th>
+                        <th>Dirección</th>
+                        <th>Teléfono</th>
+                        <th>Email</th>
+                        <th class="text-center">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for cliente in clientes %}
+                    <tr>
+                        <td class="text-center">{{ cliente.id }}</td>
+                        <td>{{ cliente.nombre }}</td>
+                        <td>{{ cliente.direccion or 'N/A' }}</td>
+                        <td>{{ cliente.telefono or 'N/A' }}</td>
+                        <td>{{ cliente.email or 'N/A' }}</td>
+                        <td class="text-center">
+                            <a href="{{ url_for('editar_cliente', cid=cliente.id) }}" class="btn btn-sm btn-warning">Editar</a>
+                            
+                            <form method="POST" action="{{ url_for('eliminar_cliente', cid=cliente.id) }}" style="display:inline;">
+                                <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('¿Estás seguro de eliminar a {{ cliente.nombre }}?');">Eliminar</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% else %}
+    <div class="alert alert-info mt-3" role="alert">
+        No hay clientes registrados. 
+        <a href="{{ url_for('crear_cliente') }}" class="alert-link">Agrega el primero aquí.</a>
+    </div>
+    {% endif %}
+
+</div>
+{% endblock %}

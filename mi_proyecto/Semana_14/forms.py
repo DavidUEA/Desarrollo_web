@@ -1,7 +1,7 @@
 
 from flask_wtf import FlaskForm
 from wtforms import StringField, IntegerField, DecimalField, SubmitField, PasswordField 
-from wtforms.validators import DataRequired, NumberRange, Length, EqualTo, ValidationError 
+from wtforms.validators import DataRequired, NumberRange, Length, EqualTo, ValidationError, Optional, Email
 
 from models import Usuario 
 
@@ -40,3 +40,11 @@ class RegistroForm(FlaskForm):
 class LogoutForm(FlaskForm):
     # Un formulario simple para propósitos de CSRF y envío POST
     submit = SubmitField('Cerrar Sesión')
+
+class ClienteForm(FlaskForm):
+    nombre = StringField('Nombre', validators=[DataRequired(), Length(max=100)])
+    direccion = StringField('Dirección', validators=[Optional(), Length(max=200)])
+    telefono = StringField('Teléfono', validators=[Optional(), Length(max=20)])
+    email = StringField('Email', validators=[Optional(), Email(), Length(max=120)])
+    submit = SubmitField('Guardar Cliente')
+

@@ -2,8 +2,8 @@ from flask import Flask, render_template, redirect, url_for, flash, request
 from datetime import datetime
 # 1. Importa la instancia 'db' de SQLAlchemy (aún no inicializada)
 from extension import db
-from forms import ProductoForm , RegistroForm, LogoutForm
-from models import Producto, Usuario # Necesario para crear tablas
+from forms import ProductoForm , RegistroForm, LogoutForm, ClienteForm
+from models import Producto, Usuario, Cliente # Necesario para crear tablas
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user 
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -162,6 +162,119 @@ def eliminar_producto(pid):
     ok = inventario.eliminar(pid)
     flash('Producto eliminado.' if ok else 'Producto no encontrado.', 'info' if ok else 'warning')
     return redirect(url_for('listar_productos'))
+
+@app.route('/clientes')
+def listar_clientes():
+    clientes = Cliente.query.all() 
+    return render_template('clientes/lista.html', title='Clientes', clientes=clientes)
+
+@app.route('/inventario_general')
+def inventario_general():
+        
+    productos = inventario.listar_todos() 
+    total_productos_unicos = len(productos)
+    valor_total_inventario = 0
+    
+    # NUEVA LÓGICA: Encontrar productos con bajo stock (Umbral < 10)
+    productos_bajo_stock = [p for p in productos if p.cantidad < 10]
+    
+    for p in productos:
+        valor_total_inventario += p.cantidad * p.precio
+        
+    return render_template(
+        'inventario/resumen.html', 
+        title='Inventario General',
+        total_productos=total_productos_unicos,
+        valor_total=valor_total_inventario,
+            # Pasar la nueva lista a la plantilla
+        productos_bajo_stock=productos_bajo_stock 
+    )
+
+@app.route('/ventas')
+def listar_ventas():
+    # NOTA: Aquí iría la lógica para obtener la lista de ventas.
+    ventas = []
+    return render_template('ventas/lista.html', title='Registro de Ventas', ventas=ventas)
+
+@app.route('/proveedores')
+def listar_proveedores():
+    # NOTA: Aquí iría la lógica para obtener la lista de proveedores.
+    proveedores = []
+    return render_template('proveedores/lista.html', title='Proveedores', proveedores=proveedores)
+
+@app.route('/clientes/nuevo', methods=['GET', 'POST'])
+# @login_required # Puedes añadir esto si requieres autenticación
+def crear_cliente():
+    form = ClienteForm()
+    if form.validate_on_submit():
+        # 1. Verificar si el nombre ya existe
+        if Cliente.query.filter_by(nombre=form.nombre.data).first():
+            form.nombre.errors.append('Ya existe un cliente con ese nombre.')
+        # 2. Verificar si el email ya existe (si se proporcionó)
+        elif form.email.data and Cliente.query.filter_by(email=form.email.data).first():
+            form.email.errors.append('Ya existe un cliente con ese email.')
+        else:
+            # 3. Crear y guardar el nuevo cliente
+            nuevo_cliente = Cliente(
+                nombre=form.nombre.data,
+                direccion=form.direccion.data,
+                telefono=form.telefono.data,
+                email=form.email.data
+            )
+            db.session.add(nuevo_cliente)
+            db.session.commit()
+            flash('Cliente agregado correctamente.', 'success')
+            return redirect(url_for('listar_clientes'))
+            
+    # La plantilla para crear/editar puede ser la misma: 'clientes/form.html'
+    return render_template('clientes/form.html', title='Nuevo Cliente', form=form, modo='crear')
+
+@app.route('/clientes/<int:cid>/editar', methods=['GET', 'POST'])
+# @login_required # Puedes proteger la ruta si es necesario
+def editar_cliente(cid):
+    # Obtener el cliente de la base de datos o lanzar 404
+    cliente = Cliente.query.get_or_404(cid)
+    
+    # Pre-llenar el formulario con los datos del cliente
+    form = ClienteForm(obj=cliente)
+    
+    if form.validate_on_submit():
+        # Verificar si el nombre o email ya existen en otro cliente
+        if Cliente.query.filter(Cliente.nombre == form.nombre.data, Cliente.id != cid).first():
+            form.nombre.errors.append('Ya existe otro cliente con ese nombre.')
+        elif form.email.data and Cliente.query.filter(Cliente.email == form.email.data, Cliente.id != cid).first():
+            form.email.errors.append('Ya existe otro cliente con ese email.')
+        else:
+            # Actualizar los datos del cliente
+            cliente.nombre = form.nombre.data
+            cliente.direccion = form.direccion.data
+            cliente.telefono = form.telefono.data
+            cliente.email = form.email.data
+            
+            db.session.commit()
+            flash('Cliente actualizado correctamente.', 'success')
+            return redirect(url_for('listar_clientes'))
+            
+    # Renderizar el mismo formulario usado para crear
+    return render_template('clientes/form.html', 
+                           title='Editar Cliente', 
+                           form=form, 
+                           modo='editar')
+
+
+@app.route('/clientes/<int:cid>/eliminar', methods=['POST'])
+# @login_required # Puedes proteger la ruta si es necesario
+def eliminar_cliente(cid):
+    cliente = Cliente.query.get(cid)
+    
+    if cliente:
+        db.session.delete(cliente)
+        db.session.commit()
+        flash(f'Cliente "{cliente.nombre}" eliminado.', 'info')
+    else:
+        flash('Cliente no encontrado.', 'warning')
+        
+    return redirect(url_for('listar_clientes'))
 
 if __name__ == '__main__':
     app.run(debug=True)

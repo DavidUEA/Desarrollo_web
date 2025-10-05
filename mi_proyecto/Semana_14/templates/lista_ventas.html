@@ -1,0 +1,38 @@
+% extends "base.html" %}
+{% block title %}Listado de Ventas{% endblock %}
+
+{% block content %}
+    <h1>Historial de Ventas</h1>
+    
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Cliente</th>
+                <th>Fecha</th>
+                <th>Total</th>
+                <th>Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for venta in ventas %}
+            <tr>
+                <td>{{ venta.id }}</td>
+                <td>{{ venta.cliente.nombre }}</td>
+                <td>{{ venta.fecha.strftime('%Y-%m-%d %H:%M') }}</td>
+                <td>${{ "{:,.2f}".format(venta.total) }}</td>
+                <td>
+                    <a href="{{ url_for('editar_venta', venta_id=venta.id) }}" class="btn btn-sm btn-info">Editar</a>
+
+                    <form method="POST" action="{{ url_for('eliminar_venta', venta_id=venta.id) }}" style="display:inline-block;">
+                        <button type="submit" class="btn btn-sm btn-danger" 
+                                onclick="return confirm('¿Estás seguro de que quieres eliminar la Venta #{{ venta.id }}? ¡El stock se revertirá!')">
+                            Eliminar
+                        </button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% endblock %}

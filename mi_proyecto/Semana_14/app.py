@@ -1,19 +1,21 @@
-from flask import Flask, render_template, redirect, url_for, flash, request
+from flask import Flask, render_template, redirect, url_for, flash, request, Blueprint
 from datetime import datetime
-# 1. Importa la instancia 'db' de SQLAlchemy (aún no inicializada)
+from models import db, Venta, DetalleVenta, Producto, Cliente
 from extension import db
-from forms import ProductoForm , RegistroForm, LogoutForm, ClienteForm
-from models import Producto, Usuario, Cliente # Necesario para crear tablas
+# Asegúrate de que todas las formas necesarias estén importadas
+from forms import ProductoForm , RegistroForm, LogoutForm, ClienteForm, VentaForm, LoginForm
+from models import Producto, Usuario, Cliente, Venta, Proveedor, DetalleVenta 
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user 
 from werkzeug.security import generate_password_hash, check_password_hash
-from flask import request
 from flask_wtf.csrf import CSRFProtect
 from datetime import datetime
+from flask import flash, redirect, url_for
+import json
 
 
 app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///inventario_n.db'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:@localhost/inventario_n.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SECRET_KEY'] = 'dev-secret-key'
 
@@ -28,11 +30,9 @@ login_manager.login_message = "Debes iniciar sesión para acceder a esta página
 @login_manager.user_loader
 def load_user(user_id):
     from models import Usuario
-    # Flask-Login espera que devuelvas un objeto Usuario o None.
     return Usuario.query.get(int(user_id))
 
 inventario = None
-
 
 from models import Producto, Usuario
 from inventory import Inventario
@@ -47,59 +47,101 @@ def inject_forms_and_globals():
 with app.app_context():
     db.create_all()
     
-   
+    
     if not Usuario.query.filter_by(username='admin').first():
-        # Usa un hash simple (puedes reemplazar 'password' con cualquier hash temporal)
         hashed_password = generate_password_hash('12345', method='scrypt') 
         admin_user = Usuario(username='admin', password_hash=hashed_password)
         db.session.add(admin_user)
         db.session.commit()
     
-    # Esta llamada ahora es segura porque 'db' está completamente configurado.
     inventario = Inventario.cargar_desde_bd()
 
+# ---------------------------------------------------------------------
+# --- FUNCIÓN DE AYUDA PARA POBLAR SELECT FIELDS EN VENTA (COLOCADA AQUÍ) ---
+# ---------------------------------------------------------------------
+def populate_venta_form_choices(form):
+   
+
+    clientes = Cliente.query.order_by(Cliente.nombre).all()
+    form.cliente_id.choices = [(c.id, c.nombre) for c in clientes]
+    if not form.cliente_id.choices:
+         # Añade una opción de marcador si no hay clientes
+        form.cliente_id.choices = [(0, '--- No hay clientes registrados ---')]
+
+    # Opciones para Productos (para el FieldList)
+    productos = Producto.query.order_by(Producto.nombre).all()
+    # Las opciones deben tener el ID como valor (coerce=int)
+    producto_choices = [(p.id, f"{p.nombre} (Stock: {p.cantidad}, ${p.precio:.2f})") for p in productos]
+    if not producto_choices:
+        producto_choices = [(0, '--- No hay productos registrados ---')]
+        
+    # Asignar a CADA sub-formulario existente
+    for detalle in form.detalles:
+        detalle.producto_id.choices = producto_choices
+    
+    # IMPORTANTE: Asignar al prototipo que usa la plantilla <template>
+    # Esto asegura que el JS pueda clonar una fila con las opciones cargadas.
+    if form.detalles.entries:
+        form.detalles.entries[0].form.producto_id.choices = producto_choices
+
+    pass 
+
+    return productos 
+
+# ---------------------------------------------------------------------
 # --- Rutas de Autenticación (NUEVAS: Solución al BuildError) ---
 
-@app.route('/login')
+@app.route('/login', methods=['GET', 'POST'])
 def login():
-    
+    # 1. Si ya está autenticado, redirige.
     if current_user.is_authenticated:
         return redirect(url_for('index'))
+    
+    # Crea el formulario de inicio de sesión
+    form = LoginForm()
+
+    if form.validate_on_submit():
+        # 2. Busca al usuario
+        user = Usuario.query.filter_by(username=form.username.data).first()
         
-    user = Usuario.query.filter_by(username='admin').first()
-    if user:
-        login_user(user)        
-        flash('¡Sesión iniciada como admin de prueba!', 'success')
-        # Redirige al destino original o a la página de inicio
-        next_page = request.args.get('next')
-        return redirect(next_page or url_for('index'))
-        
-    flash('Error: No se pudo iniciar sesión. ¿Falta el usuario "admin"?', 'danger')
-    return redirect(url_for('index')) # Fallback seguro
+        # 3. Verifica al usuario y la contraseña
+        # check_password_hash requiere que la contraseña guardada use generate_password_hash
+        if user and check_password_hash(user.password_hash, form.password.data):
+            login_user(user)
+            flash(f'¡Bienvenido, {user.username}!', 'success')
+            
+            # Redirección a la página que intentaba visitar
+            next_page = request.args.get('next')
+            return redirect(next_page or url_for('index'))
+        else:
+            flash('Inicio de sesión fallido. Por favor, verifica tu nombre de usuario y contraseña.', 'danger')
+    
+    # Si es GET o la validación falla, renderiza el formulario
+    return render_template('login.html', title='Iniciar Sesión', form=form)
+
 
 @app.route('/logout', methods=['POST'])
 def logout():
-    # No requiere @login_required si se usa solo como un enlace
     logout_user()
     flash('Has cerrado sesión.', 'info')
     return redirect(url_for('index'))
 
 @app.route('/registro', methods=['GET', 'POST'])
 def registro():
-        form = RegistroForm()
+    form = RegistroForm()
 
-        if current_user.is_authenticated:
-            return redirect(url_for('index'))
-        
-        if form.validate_on_submit():
-            hashed_password = generate_password_hash(form.password.data, method='scrypt')
-            new_user = Usuario(username=form.username.data, password_hash=hashed_password)
-            db.session.add(new_user)
-            db.session.commit()
-            flash('¡Registro exitoso! Ahora puedes iniciar sesión.', 'success')
-            return redirect(url_for('login'))
-        return render_template('registro.html', title='Registro', formulario=form)
-     
+    if current_user.is_authenticated:
+        return redirect(url_for('index'))
+    
+    if form.validate_on_submit():
+        hashed_password = generate_password_hash(form.password.data, method='scrypt')
+        new_user = Usuario(username=form.username.data, password_hash=hashed_password)
+        db.session.add(new_user)
+        db.session.commit()
+        flash('¡Registro exitoso! Ahora puedes iniciar sesión.', 'success')
+        return redirect(url_for('login'))
+    return render_template('registro.html', title='Registro', formulario=form)
+    
 def usuario(nombre):
     return f'Bienvenido, {nombre}!'
 
@@ -133,14 +175,11 @@ def crear_producto():
             flash('Producto agregado correctamente.', 'success')
             return redirect(url_for('listar_productos'))
         except ValueError as e:
-            # Aquí se maneja el error de nombre duplicado
             form.nombre.errors.append(str(e))
     return render_template('producto/form.html', title='Nuevo producto', form=form, modo='crear')
 
 @app.route('/productos/<int:pid>/editar', methods=['GET', 'POST'])
 def editar_producto(pid):
-    # Nota: Usamos Producto.query.get_or_404(pid) para obtener la instancia más reciente,
-    # aunque inventario.actualizar también la busca si no está en la caché.
     prod = Producto.query.get_or_404(pid) 
     form = ProductoForm(obj=prod)
     if form.validate_on_submit():
@@ -175,7 +214,6 @@ def inventario_general():
     total_productos_unicos = len(productos)
     valor_total_inventario = 0
     
-    # NUEVA LÓGICA: Encontrar productos con bajo stock (Umbral < 10)
     productos_bajo_stock = [p for p in productos if p.cantidad < 10]
     
     for p in productos:
@@ -186,35 +224,18 @@ def inventario_general():
         title='Inventario General',
         total_productos=total_productos_unicos,
         valor_total=valor_total_inventario,
-            # Pasar la nueva lista a la plantilla
         productos_bajo_stock=productos_bajo_stock 
     )
 
-@app.route('/ventas')
-def listar_ventas():
-    # NOTA: Aquí iría la lógica para obtener la lista de ventas.
-    ventas = []
-    return render_template('ventas/lista.html', title='Registro de Ventas', ventas=ventas)
-
-@app.route('/proveedores')
-def listar_proveedores():
-    # NOTA: Aquí iría la lógica para obtener la lista de proveedores.
-    proveedores = []
-    return render_template('proveedores/lista.html', title='Proveedores', proveedores=proveedores)
-
 @app.route('/clientes/nuevo', methods=['GET', 'POST'])
-# @login_required # Puedes añadir esto si requieres autenticación
 def crear_cliente():
     form = ClienteForm()
     if form.validate_on_submit():
-        # 1. Verificar si el nombre ya existe
         if Cliente.query.filter_by(nombre=form.nombre.data).first():
             form.nombre.errors.append('Ya existe un cliente con ese nombre.')
-        # 2. Verificar si el email ya existe (si se proporcionó)
         elif form.email.data and Cliente.query.filter_by(email=form.email.data).first():
             form.email.errors.append('Ya existe un cliente con ese email.')
         else:
-            # 3. Crear y guardar el nuevo cliente
             nuevo_cliente = Cliente(
                 nombre=form.nombre.data,
                 direccion=form.direccion.data,
@@ -226,26 +247,19 @@ def crear_cliente():
             flash('Cliente agregado correctamente.', 'success')
             return redirect(url_for('listar_clientes'))
             
-    # La plantilla para crear/editar puede ser la misma: 'clientes/form.html'
     return render_template('clientes/form.html', title='Nuevo Cliente', form=form, modo='crear')
 
 @app.route('/clientes/<int:cid>/editar', methods=['GET', 'POST'])
-# @login_required # Puedes proteger la ruta si es necesario
 def editar_cliente(cid):
-    # Obtener el cliente de la base de datos o lanzar 404
     cliente = Cliente.query.get_or_404(cid)
-    
-    # Pre-llenar el formulario con los datos del cliente
     form = ClienteForm(obj=cliente)
     
     if form.validate_on_submit():
-        # Verificar si el nombre o email ya existen en otro cliente
         if Cliente.query.filter(Cliente.nombre == form.nombre.data, Cliente.id != cid).first():
             form.nombre.errors.append('Ya existe otro cliente con ese nombre.')
         elif form.email.data and Cliente.query.filter(Cliente.email == form.email.data, Cliente.id != cid).first():
             form.email.errors.append('Ya existe otro cliente con ese email.')
         else:
-            # Actualizar los datos del cliente
             cliente.nombre = form.nombre.data
             cliente.direccion = form.direccion.data
             cliente.telefono = form.telefono.data
@@ -255,15 +269,12 @@ def editar_cliente(cid):
             flash('Cliente actualizado correctamente.', 'success')
             return redirect(url_for('listar_clientes'))
             
-    # Renderizar el mismo formulario usado para crear
     return render_template('clientes/form.html', 
-                           title='Editar Cliente', 
-                           form=form, 
-                           modo='editar')
-
+                            title='Editar Cliente', 
+                            form=form, 
+                            modo='editar')
 
 @app.route('/clientes/<int:cid>/eliminar', methods=['POST'])
-# @login_required # Puedes proteger la ruta si es necesario
 def eliminar_cliente(cid):
     cliente = Cliente.query.get(cid)
     
@@ -276,5 +287,236 @@ def eliminar_cliente(cid):
         
     return redirect(url_for('listar_clientes'))
 
+@app.route('/proveedores')
+def listar_proveedores():
+    proveedores = Proveedor.query.order_by(Proveedor.nombre).all()
+    return render_template('proveedores/lista.html', title='Proveedores', proveedores=proveedores)
+
+@app.route('/ventas')
+def listar_ventas():
+    ventas = Venta.query.order_by(Venta.fecha.desc()).all() 
+    return render_template('ventas/lista.html', title='Registro de Ventas', ventas=ventas)
+
+@app.route('/ventas/nuevo', methods=['GET', 'POST'])
+def crear_venta():
+    form = VentaForm()
+    
+    
+    productos_db = populate_venta_form_choices(form)
+    
+    
+    productos_data = {
+        str(p.id): float(p.precio) 
+        for p in productos_db
+    }
+    productos_json = json.dumps(productos_data) # Serializar para el JS
+    
+    
+    if form.validate_on_submit():
+        
+        # **VERIFICACIÓN ADICIONAL**: Asegúrate de que se seleccionó un cliente válido
+        if form.cliente_id.data == 0:
+            flash('Error: Debes seleccionar un cliente válido.', 'danger')
+            # Es importante volver a renderizar con el formulario poblado en caso de error
+            return render_template('ventas/form.html', title='Registrar Nueva Venta', form=form, productos_json=productos_json, modo='crear')
+
+        total_venta = 0
+        detalles_a_crear = []
+        
+        try:
+            # 1. PRE-VALIDACIÓN y CÁLCULO
+            for detalle_data in form.detalles.data:
+                producto_id = detalle_data.get('producto_id')
+                cantidad_vendida = detalle_data.get('cantidad', 0)
+                precio_unitario = detalle_data.get('precio_unitario', 0.00) 
+                
+                # Buscar el producto para verificar stock
+                producto = db.session.get(Producto, producto_id)
+                
+                # **VERIFICACIÓN ADICIONAL**: Producto válido y no el placeholder (ID 0)
+                if not producto or producto_id == 0:
+                    raise ValueError('Selecciona un producto válido en todos los detalles de venta.')
+                
+                # Verificación de Stock CRUCIAL
+                if producto.cantidad < cantidad_vendida:
+                    raise ValueError(
+                        f'Stock insuficiente para {producto.nombre}. '
+                        f'Disponible: {producto.cantidad}, Solicitado: {cantidad_vendida}.'
+                    )
+                
+                # Calcular subtotal
+                subtotal = cantidad_vendida * precio_unitario
+                total_venta += subtotal
+                
+                detalles_a_crear.append({
+                    'producto': producto,
+                    'cantidad': cantidad_vendida,
+                    'precio_unitario': precio_unitario,
+                    'subtotal': subtotal
+                })
+
+            # 2. CREACIÓN de Cabecera y Detalles (Transacción)
+            
+            nueva_venta = Venta(
+                cliente_id=form.cliente_id.data,
+                total=total_venta,
+                fecha=datetime.utcnow()
+            )
+            db.session.add(nueva_venta)
+
+            for detalle in detalles_a_crear:
+                nuevo_detalle = DetalleVenta(
+                    venta_id=nueva_venta.id,
+                    producto_id=detalle['producto'].id,
+                    cantidad=detalle['cantidad'],
+                    precio_unitario=detalle['precio_unitario'],
+                    subtotal=detalle['subtotal']
+                )
+                db.session.add(nuevo_detalle)
+                
+                # Descontar stock
+                detalle['producto'].cantidad -= detalle['cantidad']
+                
+            # 3. COMMIT FINAL
+            db.session.commit()
+            
+            flash('Venta registrada y stock actualizado correctamente.', 'success')
+            return redirect(url_for('listar_ventas'))
+
+        except ValueError as e:
+            db.session.rollback() 
+            flash(f'Error al registrar la venta: {e}', 'danger')
+            # En caso de error, volvemos a poblar las opciones antes de renderizar
+            populate_venta_form_choices(form)
+
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Ocurrió un error inesperado al procesar la venta. Detalles: {e}', 'danger')
+            # En caso de error, volvemos a poblar las opciones antes de renderizar
+            populate_venta_form_choices(form)
+
+    # Renderiza el formulario (para GET o si hay un fallo de validación/rollback)
+    return render_template('ventas/form.html', 
+                            title='Registrar Nueva Venta', 
+                            form=form,
+                            productos_json=productos_json,
+                            modo='crear')
+    
+@app.route('/ventas/<int:venta_id>/eliminar', methods=['POST'])
+@login_required # Opcional, pero muy recomendado para operaciones sensibles
+def eliminar_venta(venta_id):
+    # Para Venta: Usamos db.session.get. Necesitas manejar el 404 manualmente.
+    venta = db.session.get(Venta, venta_id)
+    if not venta:
+        from flask import abort
+        abort(404) 
+                        
+        producto = db.session.get(Producto, detalle.producto_id)                                        
+                        
+        db.session.delete(venta)
+        
+        # 4. Confirmar la transacción (COMMIT)
+        db.session.commit()
+        
+        flash(f'Venta #{venta_id} eliminada y stock revertido correctamente.', 'success')
+    
+            
+    return redirect(url_for('listar_ventas'))
+
+# --- Rutas de Ventas (Agregar esta) ---
+
+@app.route('/ventas/<int:venta_id>/editar', methods=['GET', 'POST'])
+@login_required # Opcional, pero muy recomendado
+def editar_venta(venta_id):
+    # Cargar la venta existente
+    venta = db.session.get(Venta, venta_id)
+    if not venta:
+        from flask import abort
+        abort(404) 
+    
+    producto = db.session.get(Producto, detalle_antiguo.producto_id)
+    producto = db.session.get(Producto, producto_id)
+    # Pre-cargar el formulario con los datos de la venta
+    # La parte compleja es cargar los detalles en el FieldList de VentaForm
+    form = VentaForm(obj=venta) 
+    
+    # Si es GET, o hay un error en POST
+    if request.method == 'GET':
+        # 1. Cargar los detalles existentes al formulario
+        # Esto requiere una implementación específica en tu VentaForm o aquí para llenar el FieldList
+        pass # Lógica de precarga del FieldList (detalles)
+
+    # Lógica de manejo de POST para edición
+    if form.validate_on_submit():
+        try:
+            flash('Venta modificada y stock ajustado correctamente.', 'success')
+            return redirect(url_for('listar_ventas'))
+            
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Error al modificar la venta: {e}', 'danger')
+            #
+            for detalle_antiguo in venta.detalles:
+                producto = Producto.query.get(detalle_antiguo.producto_id)
+                if producto:
+                    producto.cantidad += detalle_antiguo.cantidad # Devolver stock
+            
+            # PASO 2: ELIMINAR DETALLES ANTIGUOS
+            # Eliminar todos los DetalleVenta relacionados para recrearlos
+            DetalleVenta.query.filter_by(venta_id=venta_id).delete()
+            db.session.flush() # Aplica la eliminación antes de agregar nuevos
+            
+            # PASO 3: PROCESAR NUEVOS DETALLES Y APLICAR NUEVO STOCK
+            total_venta_nuevo = 0
+
+            for detalle_data in form.detalles.data:
+                producto_id = detalle_data.get('producto_id')
+                cantidad_vendida = detalle_data.get('cantidad', 0)
+                precio_unitario = detalle_data.get('precio_unitario', 0.00)
+                
+                # ... [Lógica de validación de stock (similar a crear_venta)] ...
+                
+                producto = Producto.query.get(producto_id)
+                subtotal = cantidad_vendida * precio_unitario
+                total_venta_nuevo += subtotal
+
+                nuevo_detalle = DetalleVenta(
+                    venta=venta,
+                    producto_id=producto_id,
+                    cantidad=cantidad_vendida,
+                    precio_unitario=precio_unitario,
+                    subtotal=subtotal
+                )
+                db.session.add(nuevo_detalle)
+                producto.cantidad -= cantidad_vendida # Descontar nuevo stock
+                
+            # PASO 4: ACTUALIZAR CABECERA DE VENTA
+            venta.cliente_id = form.cliente_id.data
+            venta.total = total_venta_nuevo
+            db.session.add(venta)
+            
+            # COMMIT FINAL
+            db.session.commit()
+            
+            flash('Venta modificada y stock ajustado correctamente.', 'success')
+            return redirect(url_for('listar_ventas'))
+            
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Error al modificar la venta: {e}', 'danger')
+
+    # 2. Poblar opciones y JSON (similar a crear_venta)
+    productos_db = populate_venta_form_choices(form)
+    productos_data = {str(p.id): float(p.precio) for p in productos_db}
+    productos_json = json.dumps(productos_data)
+    
+    return render_template('ventas/form.html', 
+                           title=f'Editar Venta #{venta_id}', 
+                           form=form, 
+                           productos_json=productos_json,
+                           modo='editar')
+
 if __name__ == '__main__':
     app.run(debug=True)
+
+

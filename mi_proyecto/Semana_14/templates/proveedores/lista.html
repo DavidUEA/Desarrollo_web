@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1 class="mb-4">Lista de Proveedores</h1>
+
+    <div class="alert alert-warning" role="alert">
+        <h4 class="alert-heading">¡Módulo Pendiente!</h4>
+        <p>Esta es la vista de los proveedores. La lógica y los modelos para la gestión de proveedores se añadirán más adelante.</p>
+    </div>
+
+    <table class="table table-hover table-bordered">
+        <thead class="table-primary">
+            <tr>
+                <th>ID</th>
+                <th>Nombre</th>
+                <th>Contacto</th>
+                <th>Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% if proveedores %}
+                {% for proveedor in proveedores %}
+                <tr>
+                    <td>{{ loop.index }}</td>
+                    <td>{{ proveedor.nombre }}</td>
+                    <td>{{ proveedor.contacto }}</td>
+                    <td>
+                        <a href="#" class="btn btn-sm btn-outline-primary">Editar</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            {% else %}
+            <tr>
+                <td colspan="4" class="text-center text-muted">Aún no hay proveedores registrados.</td>
+            </tr>
+            {% endif %}
+        </tbody>
+    </table>
+
+    <a href="#" class="btn btn-primary mt-3 disabled" aria-disabled="true">
+        <i class="fas fa-plus"></i> Nuevo Proveedor (Próximamente)
+    </a>
+</div>
+{% endblock %}

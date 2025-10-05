@@ -3,39 +3,38 @@
 
 {% block content %}
 <section class="auth card">
-  <h2>Crear cuenta</h2>
+    <h2>Crear cuenta</h2>
 
-  <form method="post" class="form auth-form">
-    <button type="submit" class="btn btn-primary">Registrarme</button> </form>
-</section>
-    {{ formulario.csrf_token }} 
-    
-    <div class="form-row">
-      {{ formulario.username.label(for='username') }}
-      {{ formulario.username(class="form-control", required=True) }}
-      {% for error in formulario.username.errors %}
-        <span class="text-danger">{{ error }}</span>
-      {% endfor %}
-    </div>
+    <form method="post" class="form auth-form">
+        
+        {{ formulario.csrf_token }} 
+        
+        <div class="form-row">
+            {{ formulario.username.label(for='username') }}
+            {{ formulario.username(class="form-control", required=True) }}
+            {% for error in formulario.username.errors %}
+                <span class="text-danger">{{ error }}</span>
+            {% endfor %}
+        </div>
 
-    <div class="form-row">
-      {{ formulario.password.label(for='confirm_password') }}
-      {{ formulario.password(class="form-control", required=True) }}
-      {% for error in formulario.password.errors %}
-        <span class="text-danger">{{ error }}</span>
-      {% endfor %}
-    </div>
-    
-    <div class="form-row">
-      {{ formulario.confirm_password.label(for='confirm_password') }}
-      {{ formulario.confirm_password(class="form-control", required=True) }}
-      {% for error in formulario.confirm_password.errors %}
-        <span class="text-danger">{{ error }}</span>
-      {% endfor %}
-    </div>
+        <div class="form-row">
+            {{ formulario.password.label(for='password') }}
+            {{ formulario.password(class="form-control", required=True) }}
+            {% for error in formulario.password.errors %}
+                <span class="text-danger">{{ error }}</span>
+            {% endfor %}
+        </div>
+        
+        <div class="form-row">
+            {{ formulario.confirm_password.label(for='confirm_password') }}
+            {{ formulario.confirm_password(class="form-control", required=True) }}
+            {% for error in formulario.confirm_password.errors %}
+                <span class="text-danger">{{ error }}</span>
+            {% endfor %}
+        </div>
 
-    <button type="submit" class="btn">Registrarme</button>
-  </form>
-
-</section>
+        {{ formulario.submit(class_="btn btn-primary") }}
+        
+    </form>
+    </section>
 {% endblock %}

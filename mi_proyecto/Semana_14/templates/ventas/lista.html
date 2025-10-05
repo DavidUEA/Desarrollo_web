@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1 class="mb-4">Registro de Ventas</h1>
+
+    <a href="{{ url_for('crear_venta') }}" class="btn btn-success mt-3 mb-3">
+        <i class="fas fa-plus"></i> Registrar Nueva Venta
+    </a>
+
+    <table class="table table-hover table-bordered table-dark"> 
+        <thead class="table-dark">
+            <tr>
+                <th>ID Venta</th>
+                <th>Cliente</th>
+                <th>Fecha</th>
+                <th>Total</th>
+                <th>Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            {# El bucle {% for venta in ventas %} usará los datos de la DB #}
+            {% if ventas %}
+                {% for venta in ventas %}
+                <tr>
+                    {# Mostrar el ID real de la venta desde el modelo #}
+                    <td>{{ venta.id }}</td> 
+                    
+                    {# Acceder al nombre del cliente a través de la relación (venta.cliente.nombre) #}
+                    <td>{{ venta.cliente.nombre if venta.cliente else 'N/A' }}</td>
+                    
+                    {# Formatear la fecha para mejor legibilidad #}
+                    <td>{{ venta.fecha.strftime('%Y-%m-%d %H:%M') }}</td>
+                    
+                    {# Formatear el total con 2 decimales y signo de dólar #}
+                    <td>${{ "%.2f"|format(venta.total) }}</td> 
+                    
+                     <td>
+                                                <a href="{{ url_for('ver_detalle_venta', vid=venta.id) }}" class="btn btn-sm btn-outline-info">
+                            <i class="fas fa-eye"></i> Detalle
+                        </a>
+                        
+                                                <a href="{{ url_for('editar_venta', venta_id=venta.id) }}" class="btn btn-sm btn-warning">
+                            <i class="fas fa-edit"></i> Editar
+                        </a>
+
+                        <form method="POST" action="{{ url_for('eliminar_venta', venta_id=venta.id) }}" style="display:inline-block;">
+                            <button type="submit" class="btn btn-sm btn-danger" 
+                                    onclick="return confirm('¿Estás seguro de que quieres eliminar la Venta #{{ venta.id }}? ¡El stock de productos se REVERTIRÁ!')">
+                                <i class="fas fa-trash"></i> Eliminar
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            {% else %}
+            <tr>
+                {# Asegúrate de que colspan coincida con el número de columnas (5) #}
+                <td colspan="5" class="text-center text-muted">Aún no hay ventas registradas.</td>
+            </tr>
+            {% endif %}
+        </tbody>
+    </table>
+
+    {# Elimina el botón 'disabled' de abajo, ya está activado arriba #}
+</div>
+{% endblock %}

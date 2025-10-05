@@ -1,0 +1,264 @@
+{% extends "base.html" %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-9">
+            <h1 class="mb-4 text-center">Registrar Nueva Venta</h1>
+
+            <form method="POST" action="{{ url_for('crear_venta') }}" id="venta-form">
+                {{ form.hidden_tag() }}
+
+                <div class="card shadow-sm mb-4">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0">1. Seleccionar Cliente</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            {{ form.cliente_id.label(class="form-label fw-bold") }}
+                            {{ form.cliente_id(class="form-select", required=True) }}
+                            {% for error in form.cliente_id.errors %}
+                                <div class="text-danger small mt-1">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card shadow-sm mb-4">
+                    <div class="card-header bg-secondary text-white d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">2. Productos a Vender</h5>
+                        <button type="button" id="btn-anadir-producto" class="btn btn-sm btn-light">
+                            <i class="bi bi-plus-circle"></i> + Añadir Producto
+                        </button>
+                    </div>
+                    
+                    <div class="card-body">
+                        <div id="productos-a-vender">
+                            {% for detalle in form.detalles %}
+                                <div class="row mb-3 align-items-end detalle-row" data-index="{{ loop.index0 }}">
+                                    
+                                    {# Campo Producto ID #}
+                                    <div class="col-md-5">
+                                        {{ detalle.producto_id.label(class="form-label sr-only") }}
+                                        {{ detalle.producto_id(class="form-select producto-select", required=True) }}
+                                        {% for error in detalle.producto_id.errors %}
+                                            <div class="text-danger small mt-1">{{ error }}</div>
+                                        {% endfor %}
+                                    </div>
+                                    
+                                    {# Campo Cantidad #}
+                                    <div class="col-md-3">
+                                        {{ detalle.cantidad.label(class="form-label sr-only") }}
+                                        {{ detalle.cantidad(class="form-control cantidad-input", min=1, required=True, value=detalle.cantidad.data or 1) }}
+                                        {% for error in detalle.cantidad.errors %}
+                                            <div class="text-danger small mt-1">{{ error }}</div>
+                                        {% endfor %}
+                                    </div>
+                                    
+                                    {# Campo de Precio (OCULTO - se llena vía JS, pero es necesario para WTForms) #}
+                                    <div class="d-none">
+                                        {{ detalle.precio_unitario(class="precio-unitario-input") }}
+                                    </div>
+
+                                    {# Subtotal (Mostrar solo con JS) #}
+                                    <div class="col-md-3 text-end">
+                                        <p class="mb-0 fw-bold pt-2 pt-md-0">
+                                            Subtotal: $<span class="subtotal-display">0.00</span>
+                                        </p>
+                                    </div>
+                                    
+                                    {# Botón Eliminar #}
+                                    <div class="col-md-1">
+                                        <button type="button" class="btn btn-sm btn-outline-danger eliminar-producto w-100" title="Eliminar Producto">
+                                            <i class="bi bi-x-lg"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div> 
+                    </div>
+                </div>
+                <div class="card shadow-sm mb-4">
+                    <div class="card-body text-center">
+                        <h2 class="mb-0">
+                            TOTAL VENTA: $<span id="total-venta" class="text-success fw-bolder">0.00</span>
+                        </h2>
+                    </div>
+                    <div class="card-footer">
+                        <div class="d-grid gap-2">
+                            {{ form.submit(class="btn btn-primary btn-lg") }} 
+                        </div>
+                    </div>
+                </div>
+                </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // **CORRECCIÓN: Usar JSON.parse() para obtener los datos de precio**
+        const productsData = JSON.parse('{{ productos_json | safe }}'); 
+        
+        const container = document.getElementById('productos-a-vender');
+        const btnAnadir = document.getElementById('btn-anadir-producto');
+        const totalVentaDisplay = document.getElementById('total-venta');
+        
+        // Obtener todas las filas al cargar (puede ser 0, 1 o más)
+        const initialRows = container.querySelectorAll('.detalle-row');
+        let lastRow = initialRows[initialRows.length - 1]; 
+        
+        // 1. Inicializar el índice global para la próxima fila
+        let index = initialRows.length;
+        
+        // Crear un templateRow solo si existe al menos una fila para clonar
+        let templateRow = null;
+        if (lastRow) {
+            templateRow = lastRow.cloneNode(true);
+            
+            // Limpiar valores del template para que las nuevas filas empiecen limpias
+            const newSelect = templateRow.querySelector('.producto-select');
+            if(newSelect.options.length > 0) {
+                 newSelect.value = newSelect.options[0].value; 
+            }
+            templateRow.querySelector('.cantidad-input').value = 1;
+            templateRow.querySelector('.subtotal-display').textContent = '0.00';
+            templateRow.querySelector('.precio-unitario-input').value = '0.00';
+            // Quitar errores si los hay de una validación anterior
+            templateRow.querySelector('.text-danger')?.remove(); 
+        } else {
+             // Si no hay filas iniciales, deshabilitar el botón si no se puede crear template
+             console.warn("No se encontró una fila de plantilla. Asegúrate de inicializar detalles en tu ruta Flask.");
+             btnAnadir.disabled = true;
+             return; // Detener la ejecución del script si no hay base.
+        }
+
+        // --- Funciones de Lógica ---
+        
+        // Mapea la fila con el nuevo índice
+        function updateIndex(element, newIndex) {
+            // Usa regex para encontrar cualquier índice numérico (e.g., detalles-0-, detalles-1-, etc.)
+            const regex = /detalles-\d+-/g;
+            const newNamePrefix = `detalles-${newIndex}-`;
+
+            element.querySelectorAll('[name], [id]').forEach(el => {
+                if (el.name) el.name = el.name.replace(regex, newNamePrefix);
+                if (el.id) el.id = el.id.replace(regex, newNamePrefix);
+            });
+            
+            element.setAttribute('data-index', newIndex);
+        }
+
+        // Re-indexa todas las filas después de una eliminación (CRUCIAL para WTForms)
+        function reindexRows() {
+            const rows = container.querySelectorAll('.detalle-row');
+            rows.forEach((row, newIndex) => {
+                updateIndex(row, newIndex);
+            });
+            index = rows.length; 
+        }
+
+        // Manejador para eliminar una fila
+        function handleEliminar(event) {
+            event.preventDefault(); 
+            const rowToRemove = event.target.closest('.detalle-row');
+            if (rowToRemove) {
+                rowToRemove.remove();
+                reindexRows();
+                calcularTotalVenta();
+            }
+        }
+
+        // Calcula subtotal de una fila y actualiza el campo oculto de precio
+        function calcularSubtotal(row) {
+            const select = row.querySelector('.producto-select');
+            const cantidadInput = row.querySelector('.cantidad-input');
+            const precioInput = row.querySelector('.precio-unitario-input');
+            const subtotalSpan = row.querySelector('.subtotal-display');
+            
+            const productoId = select.value;
+            const cantidad = parseFloat(cantidadInput.value) || 0;
+            // Usa el productoId para buscar el precio. Si no se encuentra, es 0.00.
+            const precioUnitario = parseFloat(productsData[productoId]) || 0.00; 
+            
+            // 1. Actualizar campo oculto de precio
+            precioInput.value = precioUnitario.toFixed(2); 
+
+            // 2. Calcular y mostrar subtotal
+            const subtotal = cantidad * precioUnitario;
+            subtotalSpan.textContent = subtotal.toFixed(2);
+            
+            calcularTotalVenta();
+        }
+
+        // Calcula el total de la venta sumando todos los subtotales
+        function calcularTotalVenta() {
+            let total = 0;
+            container.querySelectorAll('.subtotal-display').forEach(span => {
+                total += parseFloat(span.textContent) || 0;
+            });
+            totalVentaDisplay.textContent = total.toFixed(2);
+        }
+
+        // Añadir listeners de cálculo y eliminación a una fila
+        function addListenersToRow(row) {
+            // Listener para cambio de producto o cantidad
+            row.querySelectorAll('.producto-select, .cantidad-input').forEach(input => {
+                // Al cambiar la opción o la cantidad, recalcular
+                input.addEventListener('change', () => calcularSubtotal(row));
+                input.addEventListener('input', () => calcularSubtotal(row)); 
+            });
+            
+            // Listener para el botón de eliminar
+            const btnEliminar = row.querySelector('.eliminar-producto');
+            if(btnEliminar) {
+                btnEliminar.addEventListener('click', handleEliminar);
+            }
+        }
+        
+        // --- Evento del Botón "Añadir Producto" ---
+        btnAnadir.addEventListener('click', function() {
+            // Clonar la fila y limpiar los campos de errores/valores previos
+            const newRow = templateRow.cloneNode(true); 
+
+            // Actualizar índices en la fila clonada
+            updateIndex(newRow, index);
+            
+            // Insertar en el DOM
+            container.appendChild(newRow);
+            
+            // Añadir los listeners de evento
+            addListenersToRow(newRow);
+            
+            // Inicializar subtotal y total (importante para que se vea el precio inicial)
+            calcularSubtotal(newRow);
+            
+            // Incrementar el índice global
+            index++; 
+        });
+        
+        // --- Inicialización al cargar la página ---
+
+        // 1. Inicializar listeners y calcular para filas que existen al cargar
+        if (initialRows.length > 0) {
+            initialRows.forEach(row => {
+                addListenersToRow(row);
+                // Calcula el subtotal al cargar para que el TOTAL sea correcto
+                calcularSubtotal(row); 
+            });
+        }
+        
+        // 2. Si no hay filas iniciales (FieldList vacío), añade una para empezar.
+        if (initialRows.length === 0 && templateRow) {
+            btnAnadir.click();
+        }
+
+        // 3. Cálculo final del total (asegura que el total siempre se muestre)
+        calcularTotalVenta();
+    });
+</script>
+
+{% endblock %}

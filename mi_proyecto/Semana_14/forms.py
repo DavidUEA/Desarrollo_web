@@ -1,6 +1,6 @@
 
 from flask_wtf import FlaskForm
-from wtforms import Form, SelectField, IntegerField, FloatField, FieldList, FormField, SubmitField,  DecimalField, StringField, PasswordField   
+from wtforms import Form, SelectField, IntegerField, FloatField, FieldList, FormField, SubmitField,  DecimalField, StringField, PasswordField, TextAreaField
 from wtforms.validators import DataRequired, NumberRange, Length, EqualTo, ValidationError, Optional, Email
 
 from models import Usuario 
@@ -82,3 +82,12 @@ class VentaForm(FlaskForm):
         super(VentaForm, self).__init__(*args, **kwargs)
         
         pass
+
+class ProveedorForm(FlaskForm):
+    nombre = StringField('Nombre del Proveedor/Empresa', validators=[DataRequired(), Length(max=100)])
+    contacto = StringField('Persona de Contacto', validators=[Optional(), Length(max=100)])
+    telefono = StringField('Teléfono', validators=[Optional(), Length(max=20)])
+    email = StringField('Email', validators=[Optional(), Email(), Length(max=100)])
+    # Usamos TextAreaField para permitir una dirección más larga y multilínea
+    direccion = TextAreaField('Dirección', validators=[Optional(), Length(max=255)])
+    submit = SubmitField('Guardar Proveedor')

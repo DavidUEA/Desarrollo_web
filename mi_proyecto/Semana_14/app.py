@@ -315,12 +315,11 @@ def crear_venta():
     if form.validate_on_submit():
         
         # **VERIFICACIÓN ADICIONAL**: Asegúrate de que se seleccionó un cliente válido
-        if form.cliente_id.data == 0:
-            flash('Error: Debes seleccionar un cliente válido.', 'danger')
-            # Es importante volver a renderizar con el formulario poblado en caso de error
-            return render_template('ventas/form.html', title='Registrar Nueva Venta', form=form, productos_json=productos_json, modo='crear')
+        if form.validate_on_submit():
+            print("Datos del formulario: ", form.data)
+            print("Detalles de la venta: ", form.detalles.data)
 
-        total_venta = 0
+            total_venta = 0
         detalles_a_crear = []
         
         try:
@@ -411,16 +410,27 @@ def eliminar_venta(venta_id):
         from flask import abort
         abort(404) 
                         
-        producto = db.session.get(Producto, detalle.producto_id)                                        
-                        
-        db.session.delete(venta)
-        
-        # 4. Confirmar la transacción (COMMIT)
-        db.session.commit()
-        
-        flash(f'Venta #{venta_id} eliminada y stock revertido correctamente.', 'success')
-    
+        try:
+        # 1. PASO CRÍTICO: Devolver el stock al inventario
+            for detalle in venta.detalles:
+            # Buscar el producto, asumiendo que el modelo Venta tiene un relationship 'detalles'
+                producto = db.session.get(Producto, detalle.producto_id)
+                if producto:
+                    producto.cantidad += detalle.cantidad # Sumar la cantidad vendida de nuevo
+                    db.session.add(producto) # Marcar para guardar
+                    
+            # 2. Eliminar la venta (esto debería también eliminar DetalleVenta si tienes cascade="all, delete-orphan")
+            db.session.delete(venta)
             
+            # 3. Confirmar la transacción (COMMIT)
+            db.session.commit()
+            
+            flash(f'Venta #{venta_id} eliminada y stock revertido correctamente.', 'success')
+    
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Error al eliminar la venta y revertir stock: {e}', 'danger')
+        
     return redirect(url_for('listar_ventas'))
 
 # --- Rutas de Ventas (Agregar esta) ---
@@ -515,6 +525,7 @@ def editar_venta(venta_id):
                            form=form, 
                            productos_json=productos_json,
                            modo='editar')
+
 
 if __name__ == '__main__':
     app.run(debug=True)
